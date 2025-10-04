@@ -124,17 +124,7 @@ options = webdriver.ChromeOptions()
 options.add_experimental_option("excludeSwitches", ["enable-logging"])
 # 알럿이 떠도 자동 수락 (Selenium 4 capability)
 options.set_capability("unhandledPromptBehavior", "accept")
-
 driver = webdriver.Chrome(options=options)
-
-today = datetime.now().strftime("%Y-%m-%d")
-# 사이트 날짜 표기가 다를 수 있어 후보를 몇 개 만든다.
-today_candidates = {
-    datetime.now().strftime("%Y-%m-%d"),
-    datetime.now().strftime("%Y.%m.%d"),
-    datetime.now().strftime("%Y/%m/%d"),
-}
-
 board_url = EALIMI_URL1
 
 try:
@@ -146,7 +136,7 @@ try:
     driver.find_element(By.ID, "signInSubmitBtn").click()
 
     # 로그인 직후 알럿 처리 (있을 수도 있음)
-    accept_alert_if_present(driver, timeout=5)
+    accept_alert_if_present(driver, timeout=2)
 
     # 학생 선택 (ID가 있으면 ID로, 없으면 이름으로)
     select_student(driver, sid=STUDENT_ID, name=STUDENT_NAME)
@@ -154,8 +144,9 @@ try:
     # 알림장 페이지 이동
     driver.get(board_url)
     time.sleep(1)
+
     # 접근 불가 알럿 뜨면 중단
-    if accept_alert_if_present(driver, timeout=3):
+    if accept_alert_if_present(driver, timeout=2):
         raise SystemExit("열람 가능한 게시판이 없습니다. (권한/대상 선택 확인)")
 
     # 알림장 목록 로딩 대기
@@ -163,9 +154,23 @@ try:
         EC.presence_of_element_located((By.CSS_SELECTOR, "#ListContent"))
     )
 
+    # 오늘 날짜 알림장 찾기
     notices = driver.find_elements(
         By.CSS_SELECTOR, "#ListContent .gb_lr.box_list.type_list"
     )
+
+    # 오늘 날짜 후보군 생성 (형식 다양)
+    today = datetime.now().strftime("%Y-%m-%d")
+    today_candidates = {
+        datetime.now().strftime("%Y-%m-%d"),
+        datetime.now().strftime("%Y.%m.%d"),
+        datetime.now().strftime("%Y/%m/%d"),
+    }
+    
+    # 테스트
+    if __debug__:
+        today_candidates.add("2025-10-02")
+        print(f"오늘 날짜 후보군: {today_candidates}")
 
     found = False
     for notice in notices:
@@ -177,19 +182,35 @@ try:
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "#EditorHtml"))
             )
-
+            
+            # 본문 내용 추출
             title = driver.find_element(By.CSS_SELECTOR, ".article_tit").text
             content = driver.find_element(By.CSS_SELECTOR, "#EditorHtml").text
-
             body = f"제목: {title}\n\nURL: {driver.current_url}\n\n본문:\n{content}"
+            print(body)
+
+            # 메일 발송
             send_gmail(
                 RECEIVER_MAIL,
                 f"[e알리미] 오늘 {datetime.now().strftime('%Y-%m-%d')} 알림장 - {title}",
                 body,
             )
-
             print("오늘 알림장 메일 발송 완료 ✅")
             found = True
+
+            # Synology Chat Bot 메시지 발송
+            CHAT_WEBHOOK_URL = os.getenv("CHAT_WEBHOOK_URL")
+            if CHAT_WEBHOOK_URL:
+                send_synology_chat(
+                    CHAT_WEBHOOK_URL,
+                    f"[e알리미] 오늘 {datetime.now().strftime('%Y-%m-%d')} 알림장 - {title}",
+                    body,
+                )
+                print("오늘 알림장 Synology Chat 메시지 발송 완료 ✅")
+            else:
+                print("CHAT_WEBHOOK_URL 환경변수가 설정되지 않았습니다.")
+
+            # 종료
             break
 
     if not found:
