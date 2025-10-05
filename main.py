@@ -1,3 +1,5 @@
+import os
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -9,64 +11,22 @@ from selenium.common.exceptions import (
 )
 from datetime import datetime
 from dotenv import load_dotenv
-import time
-import os
+from notify_mail import send_gmail
+from notify_chatbot import send_synology_chat
 
-# Gmail 관련
-from email.mime.text import MIMEText
-import base64
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-import pickle
 
 load_dotenv()
 
 EALIMI_ID = os.getenv("EALIMI_ID")
 EALIMI_PW = os.getenv("EALIMI_PW")
 RECEIVER_MAIL = os.getenv("RECEIVER_MAIL")
-EALIMI_URL1 = os.getenv("EALIMI_URL1")  # 알림장/커뮤니티 주소
+EALIMI_URL1 = os.getenv("EALIMI_URL1")
 EALIMI_URL2 = os.getenv("EALIMI_URL2")
+STUDENT_ID = os.getenv("STUDENT_ID")
+STUDENT_NAME = os.getenv("STUDENT_NAME")
+CHAT_WEBHOOK_URL = os.getenv("CHAT_WEBHOOK_URL")
 
-# 학생 선택용 (있으면 ID가 가장 안정적)
-STUDENT_ID = os.getenv("STUDENT_ID")  # 예: "12145907"
-STUDENT_NAME = os.getenv("STUDENT_NAME", "김은재")
-
-# -------------------------
-# Gmail API 인증 함수
-# -------------------------
-SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
-
-
-def get_gmail_service():
-    creds = None
-    if os.path.exists("token.pickle"):
-        with open("token.pickle", "rb") as token:
-            creds = pickle.load(token)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open("token.pickle", "wb") as token:
-            pickle.dump(creds, token)
-    service = build("gmail", "v1", credentials=creds)
-    return service
-
-
-def send_gmail(to, subject, body):
-    service = get_gmail_service()
-    message = MIMEText(body, "plain", "utf-8")
-    message["to"] = to
-    message["subject"] = subject
-    raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
-    service.users().messages().send(userId="me", body={"raw": raw}).execute()
-
-
-# -------------------------
-# Selenium 유틸
-# -------------------------
+# Selenium
 def accept_alert_if_present(driver, timeout=3):
     try:
         WebDriverWait(driver, timeout).until(EC.alert_is_present())
@@ -115,106 +75,105 @@ def select_student(driver, sid=None, name=None):
     # 선택 직후 알럿이 뜨면 수락
     accept_alert_if_present(driver, timeout=2)
 
-
-# -------------------------
-# Selenium으로 알림장 크롤링
-# -------------------------
-options = webdriver.ChromeOptions()
-# options.add_argument("--headless=new")
-options.add_experimental_option("excludeSwitches", ["enable-logging"])
-# 알럿이 떠도 자동 수락 (Selenium 4 capability)
-options.set_capability("unhandledPromptBehavior", "accept")
-driver = webdriver.Chrome(options=options)
-board_url = EALIMI_URL1
-
-try:
-    # 로그인
+def login(driver, user_id, password):
     driver.get("https://www.ealimi.com/Member/SignIn")
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "id")))
-    driver.find_element(By.ID, "id").send_keys(EALIMI_ID)
-    driver.find_element(By.ID, "pw").send_keys(EALIMI_PW)
+    driver.find_element(By.ID, "id").send_keys(user_id)
+    driver.find_element(By.ID, "pw").send_keys(password)
     driver.find_element(By.ID, "signInSubmitBtn").click()
-
+    
     # 로그인 직후 알럿 처리 (있을 수도 있음)
     accept_alert_if_present(driver, timeout=2)
 
-    # 학생 선택 (ID가 있으면 ID로, 없으면 이름으로)
-    select_student(driver, sid=STUDENT_ID, name=STUDENT_NAME)
+def main():
+    options = webdriver.ChromeOptions()
+    options.add_experimental_option("excludeSwitches", ["enable-logging"])
+    options.set_capability("unhandledPromptBehavior", "accept")
+    driver = webdriver.Chrome(options=options)
+    board_url = EALIMI_URL1
 
-    # 알림장 페이지 이동
-    driver.get(board_url)
-    time.sleep(1)
+    try:
+        login(driver, EALIMI_ID, EALIMI_PW)
 
-    # 접근 불가 알럿 뜨면 중단
-    if accept_alert_if_present(driver, timeout=2):
-        raise SystemExit("열람 가능한 게시판이 없습니다. (권한/대상 선택 확인)")
+        # 학생 선택 (ID가 있으면 ID로, 없으면 이름으로)
+        select_student(driver, sid=STUDENT_ID, name=STUDENT_NAME)
 
-    # 알림장 목록 로딩 대기
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "#ListContent"))
-    )
+        # 알림장 페이지 이동
+        driver.get(board_url)
+        time.sleep(1)
 
-    # 오늘 날짜 알림장 찾기
-    notices = driver.find_elements(
-        By.CSS_SELECTOR, "#ListContent .gb_lr.box_list.type_list"
-    )
+        # 접근 불가 알럿 뜨면 중단
+        if accept_alert_if_present(driver, timeout=2):
+            raise SystemExit("열람 가능한 게시판이 없습니다. (권한/대상 선택 확인)")
 
-    # 오늘 날짜 후보군 생성 (형식 다양)
-    today = datetime.now().strftime("%Y-%m-%d")
-    today_candidates = {
-        datetime.now().strftime("%Y-%m-%d"),
-        datetime.now().strftime("%Y.%m.%d"),
-        datetime.now().strftime("%Y/%m/%d"),
-    }
-    
-    # 테스트
-    if __debug__:
-        today_candidates.add("2025-10-02")
-        print(f"오늘 날짜 후보군: {today_candidates}")
+        # 알림장 목록 로딩 대기
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#ListContent"))
+        )
 
-    found = False
-    for notice in notices:
-        reg_dt = notice.find_element(By.CSS_SELECTOR, ".content_reg_dt").text.strip()
-        if any(d in reg_dt for d in today_candidates):
-            link = notice.find_element(By.CSS_SELECTOR, ".content_title a")
-            link.click()
+        # 오늘 날짜 알림장 찾기
+        notices = driver.find_elements(
+            By.CSS_SELECTOR, "#ListContent .gb_lr.box_list.type_list"
+        )
 
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "#EditorHtml"))
-            )
-            
-            # 본문 내용 추출
-            title = driver.find_element(By.CSS_SELECTOR, ".article_tit").text
-            content = driver.find_element(By.CSS_SELECTOR, "#EditorHtml").text
-            body = f"제목: {title}\n\nURL: {driver.current_url}\n\n본문:\n{content}"
-            print(body)
+        # 오늘 날짜 후보군 생성 (형식 다양)
+        today = datetime.now().strftime("%Y-%m-%d")
+        today_candidates = {
+            datetime.now().strftime("%Y-%m-%d"),
+            datetime.now().strftime("%Y.%m.%d"),
+            datetime.now().strftime("%Y/%m/%d"),
+        }
+        
+        # 테스트
+        if __debug__:
+            today_candidates.add("2025-10-02")
+            print(f"오늘 날짜 후보군: {today_candidates}")
 
-            # 메일 발송
-            send_gmail(
-                RECEIVER_MAIL,
-                f"[e알리미] 오늘 {datetime.now().strftime('%Y-%m-%d')} 알림장 - {title}",
-                body,
-            )
-            print("오늘 알림장 메일 발송 완료 ✅")
-            found = True
+        found = False
+        for notice in notices:
+            reg_dt = notice.find_element(By.CSS_SELECTOR, ".content_reg_dt").text.strip()
+            if any(d in reg_dt for d in today_candidates):
+                link = notice.find_element(By.CSS_SELECTOR, ".content_title a")
+                link.click()
 
-            # Synology Chat Bot 메시지 발송
-            CHAT_WEBHOOK_URL = os.getenv("CHAT_WEBHOOK_URL")
-            if CHAT_WEBHOOK_URL:
-                send_synology_chat(
-                    CHAT_WEBHOOK_URL,
-                    f"[e알리미] 오늘 {datetime.now().strftime('%Y-%m-%d')} 알림장 - {title}",
-                    body,
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "#EditorHtml"))
                 )
-                print("오늘 알림장 Synology Chat 메시지 발송 완료 ✅")
-            else:
-                print("CHAT_WEBHOOK_URL 환경변수가 설정되지 않았습니다.")
+                
+                # 본문 내용 추출
+                title = driver.find_element(By.CSS_SELECTOR, ".article_tit").text
+                content = driver.find_element(By.CSS_SELECTOR, "#EditorHtml").text
+                body = f"제목: {title}\n\nURL: {driver.current_url}\n\n본문:\n{content}"
+                print(body)
 
-            # 종료
-            break
+                # # 메일 발송
+                # send_gmail(
+                #     RECEIVER_MAIL,
+                #     f"[e알리미] 오늘 {datetime.now().strftime('%Y-%m-%d')} 알림장 - {title}",
+                #     body,
+                # )
+                # print("오늘 알림장 메일 발송 완료 ✅")
+                # found = True
 
-    if not found:
-        print("오늘 날짜 알림장이 없습니다.")
+                # Chat Bot 메시지 발송
+                if CHAT_WEBHOOK_URL:
+                    send_synology_chat(
+                        CHAT_WEBHOOK_URL,
+                        f"[e알리미] 오늘 {datetime.now().strftime('%Y-%m-%d')} 알림장 - {title}",
+                        body,
+                    )
+                    print("오늘 알림장 Synology Chat 메시지 발송 완료 ✅")
+                else:
+                    print("CHAT_WEBHOOK_URL 환경변수가 설정되지 않았습니다.")
 
-finally:
-    driver.quit()
+                # 종료
+                break
+
+        if not found:
+            print("오늘 날짜 알림장이 없습니다.")
+
+    finally:
+        driver.quit()
+
+if __name__ == "__main__":
+    main()
