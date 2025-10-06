@@ -1,6 +1,8 @@
 import os
 import time
+import tempfile
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -86,6 +88,11 @@ def login(driver, user_id, password):
     accept_alert_if_present(driver, timeout=2)
 
 def main():
+    options = Options()
+    unique_user_data_dir = tempfile.mkdtemp()
+    options.add_argument(f"--user-data-dir={unique_user_data_dir}")
+
+    driver = webdriver.Chrome(options=options)
     options = webdriver.ChromeOptions()
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
     options.set_capability("unhandledPromptBehavior", "accept")
