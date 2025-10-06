@@ -89,11 +89,15 @@ def login(driver, user_id, password):
 
 def main():
     options = Options()
-    driver = webdriver.Chrome(options=options)
-    options = webdriver.ChromeOptions()
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
     options.set_capability("unhandledPromptBehavior", "accept")
+    options.add_argument("--headless")  # 화면 없이 실행
+    options.add_argument("--no-sandbox")  # 권한 문제 해결
+    options.add_argument("--disable-dev-shm-usage")  # 메모리 문제 해결
+    options.add_argument(f"--user-data-dir={tempfile.mkdtemp()}")  # 임시 디렉토리 사용
+
     driver = webdriver.Chrome(options=options)
+    
     board_url = EALIMI_URL1
 
     try:
