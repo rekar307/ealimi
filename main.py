@@ -89,9 +89,6 @@ def login(driver, user_id, password):
 
 def main():
     options = Options()
-    unique_user_data_dir = tempfile.mkdtemp()
-    options.add_argument(f"--user-data-dir={unique_user_data_dir}")
-
     driver = webdriver.Chrome(options=options)
     options = webdriver.ChromeOptions()
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
