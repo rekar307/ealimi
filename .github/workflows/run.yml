@@ -1,0 +1,41 @@
+name: Run main.py
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run-main:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run main.py (env from secrets)
+        env:
+          PYTHONUNBUFFERED: "1"
+          EALIMI_ID: ${{ secrets.EALIMI_ID }}
+          EALIMI_PW: ${{ secrets.EALIMI_PW }}
+          RECEIVER_MAIL: ${{ secrets.RECEIVER_MAIL }}
+          EALIMI_URL1: ${{ secrets.EALIMI_URL1 }}
+          EALIMI_URL2: ${{ secrets.EALIMI_URL2 }}
+          STUDENT_ID: ${{ secrets.STUDENT_ID }}
+          STUDENT_NAME: ${{ secrets.STUDENT_NAME }}
+          CHAT_WEBHOOK_URL: ${{ secrets.CHAT_WEBHOOK_URL }}
+        run: |
+          echo "Executing main.py"
+          python main.py
