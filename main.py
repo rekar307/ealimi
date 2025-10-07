@@ -21,7 +21,7 @@ load_dotenv()
 
 EALIMI_ID = os.getenv("EALIMI_ID")
 EALIMI_PW = os.getenv("EALIMI_PW")
-RECEIVER_MAIL = os.getenv("RECEIVER_MAIL")
+# RECEIVER_MAIL = os.getenv("RECEIVER_MAIL")
 EALIMI_URL1 = os.getenv("EALIMI_URL1")
 EALIMI_URL2 = os.getenv("EALIMI_URL2")
 STUDENT_ID = os.getenv("STUDENT_ID")
@@ -87,12 +87,12 @@ def login(driver, user_id, password):
     # 로그인 직후 알럿 처리 (있을 수도 있음)
     accept_alert_if_present(driver, timeout=2)
 
-def send_email(subject, body):
-    if not RECEIVER_MAIL:
+def send_email(receiver_email, subject, body):
+    if not receiver_email:
         print("RECEIVER_MAIL이 설정되지 않았습니다. 메일을 보내지 않습니다.")
         return
     try:
-        send_gmail(RECEIVER_MAIL, subject, body)
+        send_gmail(receiver_email, subject, body)
         print("오늘 알림장 메일 발송 완료 ✅")
     except Exception as e:
         print(f"메일 발송 실패: {e}")
@@ -168,19 +168,14 @@ def main():
                     EC.presence_of_element_located((By.CSS_SELECTOR, "#EditorHtml"))
                 )
                 
-                # 본문 내용 추출
+                # msg 구성
+                subject = f"[e알리미] 오늘 {datetime.now().strftime('%Y-%m-%d')} 알림장 - {title}"
                 title = driver.find_element(By.CSS_SELECTOR, ".article_tit").text
                 content = driver.find_element(By.CSS_SELECTOR, "#EditorHtml").text
                 body = f"제목: {title}\n\nURL: {driver.current_url}\n\n본문:\n{content}"
                 print(body)
 
-                # subject
-                subject = f"[e알리미] 오늘 {datetime.now().strftime('%Y-%m-%d')} 알림장 - {title}"
-
-                # 메일 발송 (Currently disabled)
-                # send_email(subject, body)
-
-                # Chat Bot 메시지 발송
+                send_email(RECEIVER_MAIL, subject, body)
                 send_chat_message(CHAT_WEBHOOK_URL, subject, body)
 
                 # 종료
@@ -188,6 +183,10 @@ def main():
                 break
 
         if not found:
+            subject = f"[e알리미] 오늘 {datetime.now().strftime('%Y-%m-%d')} 알림장 없음"
+            body = "오늘 날짜 알림장이 없습니다."
+            send_email(subject, body)
+            send_chat_message(CHAT_WEBHOOK_URL, subject, body)
             print("오늘 날짜 알림장이 없습니다.")
 
     finally:
