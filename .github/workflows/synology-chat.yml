@@ -1,17 +1,24 @@
+# .github/workflows/from-syno-chat.yml
 name: From Synology Chat
 on:
-  repository_dispatch:
-    types: [synology-chat]
+  workflow_dispatch:
+    inputs:
+      trigger:
+        required: false
+      text:
+        required: false
+      user:
+        required: false
+      channel:
+        required: false
 
 jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Show payload
-        run: |
-          echo "trigger=${{ github.event.client_payload.trigger }}"
-          echo "text=${{ github.event.client_payload.text }}"
-          echo "user=${{ github.event.client_payload.user }}"
-          echo "channel=${{ github.event.client_payload.channel }}"
-          echo "idKey=${{ github.event.client_payload.idKey }}"
-      # 실제 작업 로직...
+      - run: |
+          echo "trigger=${{ github.event.inputs.trigger }}"
+          echo "text=${{ github.event.inputs.text }}"
+          echo "user=${{ github.event.inputs.user }}"
+          echo "channel=${{ github.event.inputs.channel }}"
+      # 실제 작업 추가...
