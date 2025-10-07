@@ -87,6 +87,26 @@ def login(driver, user_id, password):
     # 로그인 직후 알럿 처리 (있을 수도 있음)
     accept_alert_if_present(driver, timeout=2)
 
+def send_email(subject, body):
+    if not RECEIVER_MAIL:
+        print("RECEIVER_MAIL이 설정되지 않았습니다. 메일을 보내지 않습니다.")
+        return
+    try:
+        send_gmail(RECEIVER_MAIL, subject, body)
+        print("오늘 알림장 메일 발송 완료 ✅")
+    except Exception as e:
+        print(f"메일 발송 실패: {e}")
+
+def send_chat_message(webhook_url, subject, message):
+    if not webhook_url:
+        print("CHAT_WEBHOOK_URL이 설정되지 않았습니다. 메시지를 보내지 않습니다.")
+        return
+    try:
+        send_synology_chat(webhook_url, subject, message)
+        print("오늘 알림장 Chat Bot 발송 완료 ✅")
+    except Exception as e:
+        print(f"Chat Bot 메시지 발송 실패: {e}")
+
 def main():
     options = Options()
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
@@ -154,27 +174,17 @@ def main():
                 body = f"제목: {title}\n\nURL: {driver.current_url}\n\n본문:\n{content}"
                 print(body)
 
-                # # 메일 발송
-                # send_gmail(
-                #     RECEIVER_MAIL,
-                #     f"[e알리미] 오늘 {datetime.now().strftime('%Y-%m-%d')} 알림장 - {title}",
-                #     body,
-                # )
-                # print("오늘 알림장 메일 발송 완료 ✅")
-                # found = True
+                # subject
+                subject = f"[e알리미] 오늘 {datetime.now().strftime('%Y-%m-%d')} 알림장 - {title}"
+
+                # 메일 발송 (Currently disabled)
+                # send_email(subject, body)
 
                 # Chat Bot 메시지 발송
-                if CHAT_WEBHOOK_URL:
-                    send_synology_chat(
-                        CHAT_WEBHOOK_URL,
-                        f"[e알리미] 오늘 {datetime.now().strftime('%Y-%m-%d')} 알림장 - {title}",
-                        body,
-                    )
-                    print("오늘 알림장 Synology Chat 메시지 발송 완료 ✅")
-                else:
-                    print("CHAT_WEBHOOK_URL 환경변수가 설정되지 않았습니다.")
+                send_chat_message(CHAT_WEBHOOK_URL, subject, body)
 
                 # 종료
+                found = True
                 break
 
         if not found:
