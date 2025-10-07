@@ -133,9 +133,9 @@ def main():
         }
         
         # 테스트
-        if __debug__:
-            today_candidates.add("2025-10-02")
-            print(f"오늘 날짜 후보군: {today_candidates}")
+        # if __debug__:
+        #     today_candidates.add("2025-10-02")
+        #     print(f"오늘 날짜 후보군: {today_candidates}")
 
         found = False
         for notice in notices:
