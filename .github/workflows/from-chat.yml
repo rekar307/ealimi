@@ -1,0 +1,17 @@
+name: From Synology Chat
+on:
+  repository_dispatch:
+    types: [synology-chat]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show payload
+        run: |
+          echo "trigger=${{ github.event.client_payload.trigger }}"
+          echo "text=${{ github.event.client_payload.text }}"
+          echo "user=${{ github.event.client_payload.user }}"
+          echo "channel=${{ github.event.client_payload.channel }}"
+          echo "idKey=${{ github.event.client_payload.idKey }}"
+      # 실제 작업 로직...
