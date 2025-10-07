@@ -21,7 +21,7 @@ load_dotenv()
 
 EALIMI_ID = os.getenv("EALIMI_ID")
 EALIMI_PW = os.getenv("EALIMI_PW")
-# RECEIVER_MAIL = os.getenv("RECEIVER_MAIL")
+RECEIVER_MAIL = "" #. os.getenv("RECEIVER_MAIL")
 EALIMI_URL1 = os.getenv("EALIMI_URL1")
 EALIMI_URL2 = os.getenv("EALIMI_URL2")
 STUDENT_ID = os.getenv("STUDENT_ID")
@@ -185,7 +185,7 @@ def main():
         if not found:
             subject = f"[e알리미] 오늘 {datetime.now().strftime('%Y-%m-%d')} 알림장 없음"
             body = "오늘 날짜 알림장이 없습니다."
-            send_email(subject, body)
+            send_email(RECEIVER_MAIL, subject, body)
             send_chat_message(CHAT_WEBHOOK_URL, subject, body)
             print("오늘 날짜 알림장이 없습니다.")
 
