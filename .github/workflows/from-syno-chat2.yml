@@ -28,8 +28,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -46,11 +46,9 @@ jobs:
           EALIMI_ID: ${{ secrets.EALIMI_ID }}
           EALIMI_PW: ${{ secrets.EALIMI_PW }}
           RECEIVER_MAIL: ${{ secrets.RECEIVER_MAIL }}
-          EALIMI_URL1: ${{ secrets.EALIMI_URL1 }}
-          EALIMI_URL2: ${{ secrets.EALIMI_URL2 }}
-          STUDENT_ID: ${{ secrets.STUDENT_ID }}
-          STUDENT_NAME: ${{ secrets.STUDENT_NAME }}
-          CHAT_WEBHOOK_URL: ${{ secrets.CHAT_WEBHOOK_URL }}
+          EALIMI_URL: ${{ secrets.EALIMI_URL2 }}
+          STUDENT_NAME: ${{ secrets.STUDENT_NAME2 }}
+          CHAT_WEBHOOK_URL: ${{ secrets.CHAT_WEBHOOK_URL2 }}
         run: |
           echo "Starting main.py ..."
           python main.py
