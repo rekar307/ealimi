@@ -25,9 +25,13 @@ def get_gmail_service(SCOPES):
 
 
 def send_gmail(to, subject, body):
-    service = get_gmail_service(["https://www.googleapis.com/auth/gmail.send"])
-    message = MIMEText(body, "plain", "utf-8")
-    message["to"] = to
-    message["subject"] = subject
-    raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
-    service.users().messages().send(userId="me", body={"raw": raw}).execute()
+    try:
+        service = get_gmail_service(["https://www.googleapis.com/auth/gmail.send"])
+        message = MIMEText(body, "plain", "utf-8")
+        message["to"] = to
+        message["subject"] = subject
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+        service.users().messages().send(userId="me", body={"raw": raw}).execute()
+        return True
+    except:
+        return False
