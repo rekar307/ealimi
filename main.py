@@ -22,9 +22,9 @@ def get_date():
         # datetime.now().strftime("%Y/%m/%d"),
     }
 
-    if __debug__:
-        today.add("2025-10-02")
-        print(f"테스트 날짜 추가: {today}")
+    # if __debug__:
+    #     today.add("2025-10-02")
+    #     print(f"테스트 날짜 추가: {today}")
 
     return today
 
