@@ -1,5 +1,5 @@
 # .github/workflows/from-syno-chat.yml
-name: From Synology Chat
+name: From Synology Chat1
 on:
   workflow_dispatch:
     inputs:
