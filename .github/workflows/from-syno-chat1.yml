@@ -2,15 +2,6 @@
 name: From Synology Chat1
 on:
   workflow_dispatch:
-    inputs:
-      trigger:
-        required: false
-      text:
-        required: false
-      user:
-        required: false
-      channel:
-        required: false
 
 jobs:
   run:
