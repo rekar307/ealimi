@@ -31,22 +31,24 @@ def get_date():
 
 def send_email(receiver_email, subject, body):
     if not receiver_email:
-        print("RECEIVER_MAIL이 설정되지 않았습니다. 메일을 보내지 않습니다.")
+        print("❌ RECEIVER_MAIL이 설정되지 않았습니다. 메일을 보내지 않습니다.")
         return
     try:
-        send_gmail(receiver_email, subject, body)
-        print("오늘 알림장 메일 발송 완료 ✅")
+        ret = send_gmail(receiver_email, subject, body)
+        if ret:
+            print("✅ 오늘 알림장 메일 발송 완료")
     except Exception as e:
         print(f"메일 발송 실패: {e}")
 
 
-def send_chat(webhook_url, subject, message):
-    if not webhook_url:
-        print("CHAT_WEBHOOK_URL이 설정되지 않았습니다. 메시지를 보내지 않습니다.")
+def send_chat(chat_webhook_url, subject, message):
+    if not chat_webhook_url:
+        print("❌ CHAT_WEBHOOK_URL이 설정되지 않았습니다. 메시지를 보내지 않습니다.")
         return
     try:
-        send_synology_chat(webhook_url, subject, message)
-        print("오늘 알림장 Chat Bot 발송 완료 ✅")
+        ret = send_synology_chat(chat_webhook_url, subject, message)
+        if ret:
+            print("✅ 오늘 알림장 Chat Bot 발송 완료")
     except Exception as e:
         print(f"Chat Bot 메시지 발송 실패: {e}")
 
@@ -58,7 +60,7 @@ def main():
     login_pw = EALIMI_PW
     student_name = STUDENT_NAME
     email = RECEIVER_MAIL
-    chat_url = CHAT_WEBHOOK_URL
+    chat_webhook_url = CHAT_WEBHOOK_URL
 
     try:
         login(driver, login_id, login_pw)
@@ -73,7 +75,7 @@ def main():
 
         subject, body = create_cont(driver, found)
         send_email(email, subject, body)
-        send_chat(chat_url, subject, body)
+        send_chat(chat_webhook_url, subject, body)
         print("=" * 50)
         print(subject)
         print(body)
