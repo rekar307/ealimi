@@ -1,6 +1,7 @@
 import json
 import requests
 
+
 def send_synology_chat(webhook_url, subject, body, use_https=False):
     """
     Synology Chat Webhook 메시지 전송 함수
@@ -17,20 +18,19 @@ def send_synology_chat(webhook_url, subject, body, use_https=False):
             webhook_url,
             data={"payload": json.dumps(payload, ensure_ascii=False)},
             timeout=10,
-            verify=False  # HTTPS인 경우 verify=False
+            verify=False,  # HTTPS인 경우 verify=False
         )
 
-        print("=== Synology Chat Webhook Debug ===")
-        print("Request URL:", res.request.url)
-        print("Request Body:", res.request.body)
-        print("Status Code:", res.status_code)
-        print("Response Text:", res.text)
-        print("===================================")
+        # print("=== Synology Chat Webhook Debug ===")
+        # print("Request URL:", res.request.url)
+        # print("Request Body:", res.request.body)
+        # print("Status Code:", res.status_code)
+        # print("Response Text:", res.text)
+        # print("===================================")
 
         res.raise_for_status()
-        print("✅ 메시지 전송 성공!")
         return True
 
     except requests.RequestException as e:
-        print("❌ 요청 중 오류 발생:", e)
+        print("- 요청 중 오류 발생:", e)
         return False
