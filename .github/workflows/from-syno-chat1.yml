@@ -11,6 +11,10 @@ on:
         required: false
       channel:
         required: false
+  schedule:
+    # Runs every day at 18:00 KST (Korea Standard Time, UTC+9)
+    # GitHub Actions cron uses UTC, so 18:00 KST = 09:00 UTC
+    - cron: "0 9 * * *"
 
 jobs:
   run:
