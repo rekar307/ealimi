@@ -1,6 +1,15 @@
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
 
+
+### vscode ###
+.vscode/
+
+### Gmail ###
+credentials.json
+token.json
+token.pickle
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -175,8 +184,3 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
-
-# Gmail
-credentials.json
-token.json
-token.pickle
